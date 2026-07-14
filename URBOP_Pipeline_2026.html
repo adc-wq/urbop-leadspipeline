@@ -60,7 +60,10 @@ body{font-family:'Sora',Arial,sans-serif;background:#f5f5f3;color:#111;font-size
 .tag{display:inline-block;font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px;}
 .tag-alto{background:#d1fae5;color:#065f46;}
 .tag-pdef{background:#f1efe8;color:#555;}
-.tag-ali{background:#fef3c7;color:#92400e;}
+.tag-medio{background:#dbeafe;color:#1e40af;}
+.tag-bajo{background:#fef3c7;color:#92400e;}
+.tag-pmedio{background:#dbeafe;color:#1e40af;}
+.tag-ali{background:#e8e7e0;color:#5a5a52;}
 .tag-won{background:#d1fae5;color:#065f46;}
 .tag-opp{background:#dbeafe;color:#1e40af;}
 .tag-lost{background:#fecaca;color:#991b1b;}
@@ -73,12 +76,14 @@ body{font-family:'Sora',Arial,sans-serif;background:#f5f5f3;color:#111;font-size
 .chart-wrap-sm{position:relative;height:180px;}
 .chart-wrap-lg{position:relative;height:260px;}
 
-.ins{background:#f8f8f8;border-left:2px solid #c8b400;border-radius:0 8px 8px 0;padding:12px 16px;margin-top:16px;}
-.ins p{font-size:12px;color:#555;line-height:1.7;}
-
 .big-stat{text-align:center;padding:24px 16px;}
 .big-num{font-size:42px;font-weight:500;line-height:1;margin-bottom:6px;}
 .big-lbl{font-size:12px;color:#8a8b88;line-height:1.5;}
+.q-btn{font-size:11px;font-family:'Sora',Arial,sans-serif;padding:4px 12px;border:0.5px solid #e5e5e5;border-radius:20px;background:#fff;color:#8a8b88;cursor:pointer;transition:all .15s;}
+.q-btn.active{background:#111;color:#fff;border-color:#111;}
+.sel-q{font-size:11px;font-family:'Sora',Arial,sans-serif;padding:4px 10px;border:0.5px solid #e5e5e5;border-radius:20px;background:#fff;color:#555;cursor:pointer;}
+.ctitle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.ctitle-row .ctitle{margin-bottom:0;}
 </style>
 </head>
 <body>
@@ -88,6 +93,13 @@ body{font-family:'Sora',Arial,sans-serif;background:#f5f5f3;color:#111;font-size
   <div class="brand">URBOP <span>/ Pipeline comercial 2026</span></div>
   <div class="topbar-right">
     <div class="updated">Última actualización: <b id="last-updated">cargando...</b></div>
+    <div style="display:flex;gap:4px;" id="q-selector">
+      <button class="q-btn active" onclick="setQ('todos',this)">Todos</button>
+      <button class="q-btn" onclick="setQ('Q1',this)">Q1</button>
+      <button class="q-btn" onclick="setQ('Q2',this)">Q2</button>
+      <button class="q-btn" onclick="setQ('Q3',this)">Q3</button>
+      <button class="q-btn" onclick="setQ('Q4',this)">Q4</button>
+    </div>
   </div>
 </div>
 
@@ -128,17 +140,21 @@ body{font-family:'Sora',Arial,sans-serif;background:#f5f5f3;color:#111;font-size
 </div>
 
 <script>
-const URL_LEADS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSpoQwm6cGYnmcqBALMcm11wBZuaxjuC6YzkMc2qzKG8db9odNQkL6J2h_JJoCjvQP-IgV4yoPxjdkh/pub?gid=426081495&single=true&output=csv";
-const URL_SERV  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSpoQwm6cGYnmcqBALMcm11wBZuaxjuC6YzkMc2qzKG8db9odNQkL6J2h_JJoCjvQP-IgV4yoPxjdkh/pub?gid=1394521636&single=true&output=csv";
+const URL_LEADS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTu5sghPNilCI6tyDV8xpCbloDpuzPFffJIDi3b4Ov8N4L3b3glHRDXWSdcDhcruWKT606Q_PnSyozp/pub?gid=1998433350&single=true&output=csv";
+const URL_SERV  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTu5sghPNilCI6tyDV8xpCbloDpuzPFffJIDi3b4Ov8N4L3b3glHRDXWSdcDhcruWKT606Q_PnSyozp/pub?gid=1157262922&single=true&output=csv";
 const SHEET_ID  = "1YgMrLRENztZvkImnMh0Bz-LD46cYbxErKy8DzMWFCXY";
 
 let allLeads=[], allServicios=[];
 let charts={};
 let rendered=new Set();
+let activeQ='todos';
+let oppTableQ='todos';
 
 // ── COLORS ──────────────────────────────────────────────
 const C = {
   alto:   '#1baf7a',
+  medio:  '#2a78d6',
+  bajo:   '#eda100',
   pdef:   '#eda100',
   ali:    '#c3c2b7',
   won:    '#1a7a4a',
@@ -232,20 +248,25 @@ function buildDoughnut(id,data,labels,colors){
 
 // ── STATS ───────────────────────────────────────────────
 function getLeadStats(){
-  const total=allLeads.length;
-  const won=allLeads.filter(r=>r['Estado']==='Won').length;
-  const opp=allLeads.filter(r=>r['Estado']==='Oportunidad').length;
-  const lost=allLeads.filter(r=>r['Estado']==='Lost').length;
-  const alto=allLeads.filter(r=>r['Calidad']==='Alto potencial').length;
+  const leads=activeQ==='todos'?allLeads:allLeads.filter(r=>r['Q']===activeQ);
+  const total=leads.length;
+  const won=leads.filter(r=>r['Estado']==='Won').length;
+  const opp=leads.filter(r=>r['Estado']==='Oportunidad').length;
+  const lost=leads.filter(r=>r['Estado']==='Lost').length;
+  const alto=leads.filter(r=>r['Calidad']==='Alto potencial').length;
+  const medio=leads.filter(r=>r['Calidad']==='Potencial medio').length;
+  const bajo=leads.filter(r=>r['Calidad']==='Potencial bajo').length;
   const pdef=allLeads.filter(r=>r['Calidad']==='Por definir').length;
-  const ali=allLeads.filter(r=>r['Calidad']==='Alianza estratégica').length;
+  const ali=leads.filter(r=>r['Calidad']==='Alianza estratégica').length;
 
   const byOrigen={};
-  allLeads.forEach(r=>{
+  leads.forEach(r=>{
     const o=r['Origen']||'Sin registrar';
-    if(!byOrigen[o]) byOrigen[o]={total:0,alto:0,pdef:0,ali:0,won:0,opp:0,lost:0};
+    if(!byOrigen[o]) byOrigen[o]={total:0,alto:0,medio:0,bajo:0,pdef:0,ali:0,won:0,opp:0,lost:0};
     byOrigen[o].total++;
     if(r['Calidad']==='Alto potencial') byOrigen[o].alto++;
+    else if(r['Calidad']==='Potencial medio') byOrigen[o].medio++;
+    else if(r['Calidad']==='Potencial bajo') byOrigen[o].bajo++;
     else if(r['Calidad']==='Alianza estratégica') byOrigen[o].ali++;
     else byOrigen[o].pdef++;
     if(r['Estado']==='Won') byOrigen[o].won++;
@@ -254,33 +275,34 @@ function getLeadStats(){
   });
 
   const lostReasons={};
-  allLeads.filter(r=>r['Estado']==='Lost').forEach(r=>{
+  leads.filter(r=>r['Estado']==='Lost').forEach(r=>{
     const rz=r['Razón lost']||'Sin registrar';
     lostReasons[rz]=(lostReasons[rz]||0)+1;
   });
 
   // By calidad + estado
-  const altoWon=allLeads.filter(r=>r['Calidad']==='Alto potencial'&&r['Estado']==='Won').length;
-  const altoOpp=allLeads.filter(r=>r['Calidad']==='Alto potencial'&&r['Estado']==='Oportunidad').length;
-  const altoLost=allLeads.filter(r=>r['Calidad']==='Alto potencial'&&r['Estado']==='Lost').length;
-  const pdefWon=allLeads.filter(r=>r['Calidad']==='Por definir'&&r['Estado']==='Won').length;
-  const pdefOpp=allLeads.filter(r=>r['Calidad']==='Por definir'&&r['Estado']==='Oportunidad').length;
-  const pdefLost=allLeads.filter(r=>r['Calidad']==='Por definir'&&r['Estado']==='Lost').length;
+  const altoWon=leads.filter(r=>r['Calidad']==='Alto potencial'&&r['Estado']==='Won').length;
+  const altoOpp=leads.filter(r=>r['Calidad']==='Alto potencial'&&r['Estado']==='Oportunidad').length;
+  const altoLost=leads.filter(r=>r['Calidad']==='Alto potencial'&&r['Estado']==='Lost').length;
+  const pdefWon=leads.filter(r=>r['Calidad']==='Por definir'&&r['Estado']==='Won').length;
+  const pdefOpp=leads.filter(r=>r['Calidad']==='Por definir'&&r['Estado']==='Oportunidad').length;
+  const pdefLost=leads.filter(r=>r['Calidad']==='Por definir'&&r['Estado']==='Lost').length;
 
   return{total,won,opp,lost,alto,pdef,ali,byOrigen,lostReasons,
     altoWon,altoOpp,altoLost,pdefWon,pdefOpp,pdefLost};
 }
 
 function getSvcStats(){
-  const activos=allServicios.filter(r=>r['Estado']==='Activo');
-  const entregados=allServicios.filter(r=>r['Estado']==='Entregado');
-  const negociacion=allServicios.filter(r=>r['Estado']==='En negociación');
+  const svcs=activeQ==='todos'?allServicios:allServicios.filter(r=>r['Q']===activeQ);
+  const activos=svcs.filter(r=>r['Estado']==='Activo');
+  const entregados=svcs.filter(r=>r['Estado']==='Entregado');
+  const negociacion=svcs.filter(r=>r['Estado']==='En negociación');
   const bySvc={};
-  allServicios.forEach(r=>{
+  svcs.forEach(r=>{
     const s=r['Servicio']||'Sin definir';
     bySvc[s]=(bySvc[s]||0)+1;
   });
-  return{activos,entregados,negociacion,bySvc,total:allServicios.length};
+  return{activos,entregados,negociacion,bySvc,total:svcs.length};
 }
 
 // ── RENDER ORIGEN ────────────────────────────────────────
@@ -289,7 +311,8 @@ function renderOrigen(){
   const origenes=Object.entries(s.byOrigen).sort((a,b)=>b[1].total-a[1].total);
   const labels=origenes.map(([o])=>o);
   const altoData=origenes.map(([,v])=>v.alto);
-  const pdefData=origenes.map(([,v])=>v.pdef);
+  const medioData=origenes.map(([,v])=>v.medio||0);
+  const bajoData=origenes.map(([,v])=>v.bajo||0);
   const aliData=origenes.map(([,v])=>v.ali);
   const wonPct=origenes.map(([,v])=>v.total>0?Math.round(v.won/v.total*100):0);
 
@@ -300,7 +323,8 @@ function renderOrigen(){
       <div class="ctitle">Volumen y calidad por canal</div>
       <div class="legend">
         <span><span class="ldot" style="background:${C.alto}"></span>Alto potencial</span>
-        <span><span class="ldot" style="background:${C.pdef}"></span>Por definir</span>
+        <span><span class="ldot" style="background:${C.medio}"></span>Potencial medio</span>
+        <span><span class="ldot" style="background:${C.bajo}"></span>Potencial bajo</span>
         <span><span class="ldot" style="background:${C.ali}"></span>Alianza estratégica</span>
       </div>
       <div class="chart-wrap-lg"><canvas id="origenVolChart" role="img" aria-label="Barras apiladas de calidad por canal"></canvas></div>
@@ -308,7 +332,7 @@ function renderOrigen(){
     <div class="card">
       <div class="ctitle">Tasa de conversión a Won por canal</div>
       <div class="chart-wrap-lg"><canvas id="origenWonChart" role="img" aria-label="Barras horizontales de conversión a won por canal"></canvas></div>
-      <div class="ins"><p>Los canales con mayor tasa de conversión a Won son los más valiosos independientemente de su volumen. Priorizar estos canales en H2 maximiza el retorno.</p></div>
+      
     </div>
   </div>
   <div class="card">
@@ -333,8 +357,9 @@ function renderOrigen(){
     buildBar('origenVolChart', labels,
       [
         {label:'Alto potencial',data:altoData,backgroundColor:C.alto,borderRadius:3,borderSkipped:false},
-        {label:'Por definir',data:pdefData,backgroundColor:C.pdef,borderRadius:3,borderSkipped:false},
-        {label:'Alianza',data:aliData,backgroundColor:C.ali,borderRadius:3,borderSkipped:false},
+        {label:'Potencial medio',data:medioData,backgroundColor:C.medio,borderRadius:3,borderSkipped:false},
+        {label:'Potencial bajo',data:bajoData,backgroundColor:C.bajo,borderRadius:3,borderSkipped:false},
+        {label:'Alianza estratégica',data:aliData,backgroundColor:C.ali,borderRadius:3,borderSkipped:false},
       ],{stacked:true}
     );
     buildHBar('origenWonChart', labels, wonPct, C.opp, {xticks:{callback:v=>v+'%'}});
@@ -342,9 +367,26 @@ function renderOrigen(){
 }
 
 // ── RENDER TRAYECTO ──────────────────────────────────────
+function renderOppTable(){
+  const sel=document.getElementById('oppQFilter');
+  const q=sel?sel.value:oppTableQ;
+  oppTableQ=q;
+  const rows=allLeads.filter(r=>r['Estado']==='Oportunidad'&&(q==='todos'||r['Q']===q));
+  const tbody=document.getElementById('oppTableBody');
+  if(!tbody)return;
+  tbody.innerHTML=rows.length?rows.map(r=>`
+    <tr>
+      <td style="font-weight:500">${r['Nombre']}</td>
+      <td class="m">${r['Origen']||'—'}</td>
+      <td><span class="tag ${r['Calidad']==='Alto potencial'?'tag-alto':r['Calidad']==='Potencial medio'?'tag-medio':r['Calidad']==='Potencial bajo'?'tag-bajo':r['Calidad']==='Alianza estratégica'?'tag-ali':'tag-pdef'}">${r['Calidad']||'Por definir'}</span></td>
+      <td class="m">${r['Q']||'—'}</td>
+    </tr>`).join(''):`<tr><td colspan="4" class="m">Sin oportunidades activas${q!=='todos'?' en '+q:''}.</td></tr>`;
+}
+
 function renderTrayecto(){
   const s=getLeadStats();
   const reasons=Object.entries(s.lostReasons).sort((a,b)=>b[1]-a[1]);
+  oppTableQ=activeQ;
 
   document.getElementById('trayecto-content').innerHTML=`
   <div class="slabel">¿Cómo han avanzado los leads?</div>
@@ -369,21 +411,23 @@ function renderTrayecto(){
     </div>
   </div>
   <div class="card" style="margin-bottom:22px;">
-    <div class="ctitle">Leads con oportunidad activa</div>
+    <div class="ctitle-row">
+      <div class="ctitle">Leads con oportunidad activa</div>
+      <select class="sel-q" id="oppQFilter" onchange="renderOppTable()">
+        <option value="todos" ${oppTableQ==='todos'?'selected':''}>Todos los Q</option>
+        <option value="Q1" ${oppTableQ==='Q1'?'selected':''}>Q1</option>
+        <option value="Q2" ${oppTableQ==='Q2'?'selected':''}>Q2</option>
+        <option value="Q3" ${oppTableQ==='Q3'?'selected':''}>Q3</option>
+        <option value="Q4" ${oppTableQ==='Q4'?'selected':''}>Q4</option>
+      </select>
+    </div>
     <table class="tbl">
       <thead><tr><th>Lead</th><th>Origen</th><th>Calidad</th><th>Q</th></tr></thead>
-      <tbody>
-        ${allLeads.filter(r=>r['Estado']==='Oportunidad').map(r=>`
-        <tr>
-          <td style="font-weight:500">${r['Nombre']}</td>
-          <td class="m">${r['Origen']||'—'}</td>
-          <td><span class="tag ${r['Calidad']==='Alto potencial'?'tag-alto':r['Calidad']==='Alianza estratégica'?'tag-ali':'tag-pdef'}">${r['Calidad']||'Por definir'}</span></td>
-          <td class="m">${r['Q']||'—'}</td>
-        </tr>`).join('')}
-      </tbody>
+      <tbody id="oppTableBody"></tbody>
     </table>
   </div>
-  <div class="ins"><p>${Math.round(s.lost>0?(Object.entries(s.lostReasons).find(([r])=>r==='No es el momento')?.[1]||0)/s.lost*100:0)}% de los lost salieron por "no es el momento" — no son rechazos definitivos. Representan un pipeline de reactivación real para H2.</p></div>`;
+  `;
+  renderOppTable();
 
   setTimeout(()=>{
     buildBar('funnelCalChart',
@@ -457,8 +501,17 @@ function renderServicios(){
 
 // ── RENDER RESUMEN ───────────────────────────────────────
 function renderResumen(){
+  const savedQ=activeQ;
+  activeQ='todos';
   const ls=getLeadStats();
   const ss=getSvcStats();
+  const byQ=['Q1','Q2','Q3','Q4'].map(q=>{
+    activeQ=q;
+    const l=getLeadStats();
+    const sv=getSvcStats();
+    return{q,leads:l.total,won:l.won,opp:l.opp,lost:l.lost,entregados:sv.entregados.length,activos:sv.activos.length};
+  });
+  activeQ=savedQ;
   const reactivables=allLeads.filter(r=>r['Estado']==='Lost'&&(r['Razón lost']==='No es el momento'||r['Razón lost']==='Sin respuesta / No responde')).length;
   const topCanal=Object.entries(ls.byOrigen).sort((a,b)=>{
     const pa=a[1].total>0?b[1].won/b[1].total:0;
@@ -488,7 +541,42 @@ function renderResumen(){
       <div class="big-lbl">leads de alto potencial<br>${pct(ls.alto,ls.total)} del total</div>
     </div>
   </div>
-  <div class="ins"><p>La calidad de los leads mejora — GRI y Relaciones Sociales generan los contactos con mayor tasa de conversión. El reto para H2 es volumen de nuevos leads y activar el pipeline de reactivación de ${reactivables} contactos. Hay ${ls.opp} oportunidades activas listas para cerrar.</p></div>`;
+  <div class="card">
+    <div class="ctitle">Detalle por trimestre</div>
+    <table class="tbl">
+      <thead><tr><th>Q</th><th class="r">Leads</th><th class="r">Won</th><th class="r">Oportunidad</th><th class="r">Lost</th><th class="r">Entregados</th><th class="r">Activos</th></tr></thead>
+      <tbody>
+        ${byQ.map(r=>`
+        <tr>
+          <td style="font-weight:500">${r.q}</td>
+          <td class="r">${r.leads}</td>
+          <td class="r" style="color:#1a7a4a;font-weight:500">${r.won}</td>
+          <td class="r" style="color:#b45309">${r.opp}</td>
+          <td class="r" style="color:#c0392b">${r.lost}</td>
+          <td class="r">${r.entregados}</td>
+          <td class="r">${r.activos}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+  `;
+}
+
+// ── Q FILTER ────────────────────────────────────────────
+function setQ(q, btn){
+  activeQ=q;
+  document.querySelectorAll('.q-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  rendered.clear();
+  Object.values(charts).forEach(c=>c.destroy());
+  charts={};
+  const activeTab=document.querySelector('.tab.active');
+  const tabId=activeTab?.getAttribute('onclick')?.match(/'(\w+)'/)?.[1]||'origen';
+  if(tabId==='origen')renderOrigen();
+  else if(tabId==='trayecto')renderTrayecto();
+  else if(tabId==='servicios')renderServicios();
+  else if(tabId==='resumen')renderResumen();
+  rendered.add(tabId);
 }
 
 // ── NAV ─────────────────────────────────────────────────
