@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>URBOP — Pipeline Comercial 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Sora',Arial,sans-serif;background:#f5f5f3;color:#111;font-size:13px;}
+.wrapper{max-width:1100px;margin:0 auto;background:#fff;min-height:100vh;}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 32px;border-bottom:0.5px solid #e5e5e5;}
+.brand{font-size:13px;font-weight:600;letter-spacing:0.06em;color:#111;}
+.brand span{font-weight:400;color:#8a8b88;margin-left:8px;font-size:12px;}
+.topbar-right{display:flex;align-items:center;gap:16px;}
+.updated{font-size:11px;color:#8a8b88;}
+.updated b{color:#111;font-weight:500;}
+
+.tabs{display:flex;border-bottom:1.5px solid #e5e5e5;padding:0 32px;}
+.tab{padding:11px 20px;font-size:12px;font-weight:400;color:#8a8b88;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1.5px;white-space:nowrap;transition:color .15s;font-family:'Sora',Arial,sans-serif;}
+.tab:hover{color:#111;}
+.tab.active{color:#111;font-weight:500;border-bottom:2px solid #111;}
+
+.page{display:none;padding:28px 32px 48px;}
+.page.active{display:block;}
+
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 32px;gap:16px;}
+.spinner{width:28px;height:28px;border:2px solid #e5e5e5;border-top-color:#111;border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading p{font-size:12px;color:#8a8b88;}
+.error-box{background:#fef2f2;border:0.5px solid #fecaca;border-radius:8px;padding:20px 24px;margin:24px 0;}
+.error-box p{font-size:13px;color:#991b1b;line-height:1.7;}
+
+.slabel{font-size:10px;font-weight:500;letter-spacing:0.1em;color:#8a8b88;text-transform:uppercase;margin-bottom:16px;}
+
+.kgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px;}
+.kcard{background:#f8f8f8;border-radius:8px;padding:14px 16px;}
+.klabel{font-size:10px;color:#8a8b88;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;}
+.kval{font-size:28px;font-weight:500;line-height:1;margin-bottom:4px;color:#111;}
+.kval.g{color:#1a7a4a;}.kval.a{color:#b45309;}.kval.r{color:#c0392b;}.kval.b{color:#2a78d6;}
+.ksub{font-size:11px;color:#8a8b88;line-height:1.5;}
+
+.twocol{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+.threecol{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:22px;}
+.card{border:0.5px solid #e5e5e5;border-radius:8px;padding:16px 18px;}
+.ctitle{font-size:10px;font-weight:500;letter-spacing:0.1em;color:#8a8b88;text-transform:uppercase;margin-bottom:12px;}
+
+.legend{display:flex;gap:16px;font-size:11px;color:#8a8b88;margin-bottom:10px;flex-wrap:wrap;}
+.ldot{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:4px;vertical-align:1px;}
+
+.tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.tbl th{font-size:10px;font-weight:500;letter-spacing:0.07em;color:#8a8b88;text-transform:uppercase;padding:0 8px 8px 0;border-bottom:0.5px solid #e5e5e5;text-align:left;}
+.tbl td{padding:7px 8px 7px 0;border-bottom:0.5px solid #f0f0f0;color:#111;vertical-align:middle;}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl td.m{color:#8a8b88;}
+.tbl td.r{text-align:right;}
+
+.tag{display:inline-block;font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px;}
+.tag-alto{background:#d1fae5;color:#065f46;}
+.tag-pdef{background:#f1efe8;color:#555;}
+.tag-ali{background:#fef3c7;color:#92400e;}
+.tag-won{background:#d1fae5;color:#065f46;}
+.tag-opp{background:#dbeafe;color:#1e40af;}
+.tag-lost{background:#fecaca;color:#991b1b;}
+.tag-lead{background:#f0f0f0;color:#555;}
+.tag-act{background:#d1fae5;color:#065f46;}
+.tag-ent{background:#f1efe8;color:#555;}
+.tag-neg{background:#dbeafe;color:#1e40af;}
+
+.chart-wrap{position:relative;height:220px;}
+.chart-wrap-sm{position:relative;height:180px;}
+.chart-wrap-lg{position:relative;height:260px;}
+
+.ins{background:#f8f8f8;border-left:2px solid #c8b400;border-radius:0 8px 8px 0;padding:12px 16px;margin-top:16px;}
+.ins p{font-size:12px;color:#555;line-height:1.7;}
+
+.big-stat{text-align:center;padding:24px 16px;}
+.big-num{font-size:42px;font-weight:500;line-height:1;margin-bottom:6px;}
+.big-lbl{font-size:12px;color:#8a8b88;line-height:1.5;}
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+<div class="topbar">
+  <div class="brand">URBOP <span>/ Pipeline comercial 2026</span></div>
+  <div class="topbar-right">
+    <div class="updated">Última actualización: <b id="last-updated">cargando...</b></div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('origen',this)">Origen de leads</div>
+  <div class="tab" onclick="showTab('trayecto',this)">Trayecto</div>
+  <div class="tab" onclick="showTab('servicios',this)">Servicios</div>
+  <div class="tab" onclick="showTab('resumen',this)">Resumen</div>
+</div>
+
+<div id="main-loading" class="loading">
+  <div class="spinner"></div>
+  <p>Cargando datos desde Google Sheets...</p>
+</div>
+
+<div id="main-content" style="display:none;">
+
+  <!-- ORIGEN -->
+  <div class="page active" id="page-origen">
+    <div id="origen-content"></div>
+  </div>
+
+  <!-- TRAYECTO -->
+  <div class="page" id="page-trayecto">
+    <div id="trayecto-content"></div>
+  </div>
+
+  <!-- SERVICIOS -->
+  <div class="page" id="page-servicios">
+    <div id="servicios-content"></div>
+  </div>
+
+  <!-- RESUMEN -->
+  <div class="page" id="page-resumen">
+    <div id="resumen-content"></div>
+  </div>
+
+</div>
+
+<script>
+const URL_LEADS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSpoQwm6cGYnmcqBALMcm11wBZuaxjuC6YzkMc2qzKG8db9odNQkL6J2h_JJoCjvQP-IgV4yoPxjdkh/pub?gid=426081495&single=true&output=csv";
+const URL_SERV  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSpoQwm6cGYnmcqBALMcm11wBZuaxjuC6YzkMc2qzKG8db9odNQkL6J2h_JJoCjvQP-IgV4yoPxjdkh/pub?gid=1394521636&single=true&output=csv";
+const SHEET_ID  = "1YgMrLRENztZvkImnMh0Bz-LD46cYbxErKy8DzMWFCXY";
+
+let allLeads=[], allServicios=[];
+let charts={};
+let rendered=new Set();
+
+// ── COLORS ──────────────────────────────────────────────
+const C = {
+  alto:   '#1baf7a',
+  pdef:   '#eda100',
+  ali:    '#c3c2b7',
+  won:    '#1a7a4a',
+  opp:    '#2a78d6',
+  lost:   '#e34948',
+  grid:   '#f0f0f0',
+  lbl:    '#8a8b88',
+  s: ['#2a78d6','#1baf7a','#eda100','#4a3aa7','#e34948','#898781','#c3c2b7','#eb6834'],
+};
+
+// ── CSV PARSER ──────────────────────────────────────────
+function parseCSVLine(line){
+  const res=[]; let cur='', inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"'){inQ=!inQ;}
+    else if(c===','&&!inQ){res.push(cur.trim());cur='';}
+    else{cur+=c;}
+  }
+  res.push(cur.trim());
+  return res;
+}
+
+function csvToObjects(text){
+  const lines=text.trim().split('\n');
+  let hi=0;
+  for(let i=0;i<Math.min(5,lines.length);i++){
+    const first=parseCSVLine(lines[i])[0].replace(/"/g,'').trim();
+    if(first==='Nombre'||first==='Cliente'){hi=i;break;}
+  }
+  const headers=parseCSVLine(lines[hi]).map(h=>h.replace(/"/g,'').trim());
+  return lines.slice(hi+1).map(line=>{
+    const vals=parseCSVLine(line);
+    const obj={};
+    headers.forEach((h,i)=>{obj[h]=(vals[i]||'').replace(/"/g,'').trim();});
+    return obj;
+  }).filter(r=>r['Nombre']||r['Cliente']);
+}
+
+// ── UTILS ───────────────────────────────────────────────
+function pct(n,d){return d===0?'0%':(n/d*100).toFixed(1)+'%';}
+function pctN(n,d){return d===0?0:Math.round(n/d*100);}
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+
+function buildBar(id,labels,datasets,opts={}){
+  destroyChart(id);
+  const ctx=document.getElementById(id);
+  if(!ctx)return;
+  charts[id]=new Chart(ctx,{
+    type:'bar',
+    data:{labels,datasets},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},...(opts.legend||{})},
+      scales:{
+        x:{stacked:opts.stacked||false,grid:{display:false},ticks:{font:{size:11,family:'Sora'},color:C.lbl}},
+        y:{stacked:opts.stacked||false,grid:{color:C.grid},ticks:{font:{size:11,family:'Sora'},color:C.lbl},beginAtZero:true,...(opts.y||{})}
+      },...(opts.extra||{})
+    }
+  });
+}
+
+function buildHBar(id,labels,data,color,opts={}){
+  destroyChart(id);
+  const ctx=document.getElementById(id);
+  if(!ctx)return;
+  charts[id]=new Chart(ctx,{
+    type:'bar',
+    data:{labels,datasets:[{data,backgroundColor:color,borderRadius:3,borderSkipped:false}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{color:C.grid},ticks:{font:{size:11,family:'Sora'},color:C.lbl,...(opts.xticks||{})}},
+        y:{grid:{display:false},ticks:{font:{size:11,family:'Sora'},color:C.lbl}}
+      }
+    }
+  });
+}
+
+function buildDoughnut(id,data,labels,colors){
+  destroyChart(id);
+  const ctx=document.getElementById(id);
+  if(!ctx)return;
+  charts[id]=new Chart(ctx,{
+    type:'doughnut',
+    data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'right',labels:{font:{size:11,family:'Sora'},color:C.lbl,boxWidth:10,padding:8}}}
+    }
+  });
+}
+
+// ── STATS ───────────────────────────────────────────────
+function getLeadStats(){
+  const total=allLeads.length;
+  const won=allLeads.filter(r=>r['Estado']==='Won').length;
+  const opp=allLeads.filter(r=>r['Estado']==='Oportunidad').length;
+  const lost=allLeads.filter(r=>r['Estado']==='Lost').length;
+  const alto=allLeads.filter(r=>r['Calidad']==='Alto potencial').length;
+  const pdef=allLeads.filter(r=>r['Calidad']==='Por definir').length;
+  const ali=allLeads.filter(r=>r['Calidad']==='Alianza estratégica').length;
+
+  const byOrigen={};
+  allLeads.forEach(r=>{
+    const o=r['Origen']||'Sin registrar';
+    if(!byOrigen[o]) byOrigen[o]={total:0,alto:0,pdef:0,ali:0,won:0,opp:0,lost:0};
+    byOrigen[o].total++;
+    if(r['Calidad']==='Alto potencial') byOrigen[o].alto++;
+    else if(r['Calidad']==='Alianza estratégica') byOrigen[o].ali++;
+    else byOrigen[o].pdef++;
+    if(r['Estado']==='Won') byOrigen[o].won++;
+    else if(r['Estado']==='Oportunidad') byOrigen[o].opp++;
+    else if(r['Estado']==='Lost') byOrigen[o].lost++;
+  });
+
+  const lostReasons={};
+  allLeads.filter(r=>r['Estado']==='Lost').forEach(r=>{
+    const rz=r['Razón lost']||'Sin registrar';
+    lostReasons[rz]=(lostReasons[rz]||0)+1;
+  });
+
+  // By calidad + estado
+  const altoWon=allLeads.filter(r=>r['Calidad']==='Alto potencial'&&r['Estado']==='Won').length;
+  const altoOpp=allLeads.filter(r=>r['Calidad']==='Alto potencial'&&r['Estado']==='Oportunidad').length;
+  const altoLost=allLeads.filter(r=>r['Calidad']==='Alto potencial'&&r['Estado']==='Lost').length;
+  const pdefWon=allLeads.filter(r=>r['Calidad']==='Por definir'&&r['Estado']==='Won').length;
+  const pdefOpp=allLeads.filter(r=>r['Calidad']==='Por definir'&&r['Estado']==='Oportunidad').length;
+  const pdefLost=allLeads.filter(r=>r['Calidad']==='Por definir'&&r['Estado']==='Lost').length;
+
+  return{total,won,opp,lost,alto,pdef,ali,byOrigen,lostReasons,
+    altoWon,altoOpp,altoLost,pdefWon,pdefOpp,pdefLost};
+}
+
+function getSvcStats(){
+  const activos=allServicios.filter(r=>r['Estado']==='Activo');
+  const entregados=allServicios.filter(r=>r['Estado']==='Entregado');
+  const negociacion=allServicios.filter(r=>r['Estado']==='En negociación');
+  const bySvc={};
+  allServicios.forEach(r=>{
+    const s=r['Servicio']||'Sin definir';
+    bySvc[s]=(bySvc[s]||0)+1;
+  });
+  return{activos,entregados,negociacion,bySvc,total:allServicios.length};
+}
+
+// ── RENDER ORIGEN ────────────────────────────────────────
+function renderOrigen(){
+  const s=getLeadStats();
+  const origenes=Object.entries(s.byOrigen).sort((a,b)=>b[1].total-a[1].total);
+  const labels=origenes.map(([o])=>o);
+  const altoData=origenes.map(([,v])=>v.alto);
+  const pdefData=origenes.map(([,v])=>v.pdef);
+  const aliData=origenes.map(([,v])=>v.ali);
+  const wonPct=origenes.map(([,v])=>v.total>0?Math.round(v.won/v.total*100):0);
+
+  document.getElementById('origen-content').innerHTML=`
+  <div class="slabel">¿De dónde vienen los leads y qué calidad tienen?</div>
+  <div class="twocol">
+    <div class="card">
+      <div class="ctitle">Volumen y calidad por canal</div>
+      <div class="legend">
+        <span><span class="ldot" style="background:${C.alto}"></span>Alto potencial</span>
+        <span><span class="ldot" style="background:${C.pdef}"></span>Por definir</span>
+        <span><span class="ldot" style="background:${C.ali}"></span>Alianza estratégica</span>
+      </div>
+      <div class="chart-wrap-lg"><canvas id="origenVolChart" role="img" aria-label="Barras apiladas de calidad por canal"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Tasa de conversión a Won por canal</div>
+      <div class="chart-wrap-lg"><canvas id="origenWonChart" role="img" aria-label="Barras horizontales de conversión a won por canal"></canvas></div>
+      <div class="ins"><p>Los canales con mayor tasa de conversión a Won son los más valiosos independientemente de su volumen. Priorizar estos canales en H2 maximiza el retorno.</p></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ctitle">Detalle por canal</div>
+    <table class="tbl">
+      <thead><tr><th>Canal</th><th class="r">Leads</th><th class="r">Alto potencial</th><th class="r">Won</th><th class="r">% Won</th><th class="r">Opp activas</th></tr></thead>
+      <tbody>
+        ${origenes.map(([o,v])=>`
+        <tr>
+          <td style="font-weight:500">${o}</td>
+          <td class="r">${v.total}</td>
+          <td class="r">${v.alto>0?`<span class="tag tag-alto">${v.alto}</span>`:'—'}</td>
+          <td class="r" style="color:#1a7a4a;font-weight:500">${v.won||'—'}</td>
+          <td class="r">${v.total>0?Math.round(v.won/v.total*100)+'%':'—'}</td>
+          <td class="r">${v.opp||'—'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+
+  setTimeout(()=>{
+    buildBar('origenVolChart', labels,
+      [
+        {label:'Alto potencial',data:altoData,backgroundColor:C.alto,borderRadius:3,borderSkipped:false},
+        {label:'Por definir',data:pdefData,backgroundColor:C.pdef,borderRadius:3,borderSkipped:false},
+        {label:'Alianza',data:aliData,backgroundColor:C.ali,borderRadius:3,borderSkipped:false},
+      ],{stacked:true}
+    );
+    buildHBar('origenWonChart', labels, wonPct, C.opp, {xticks:{callback:v=>v+'%'}});
+  },50);
+}
+
+// ── RENDER TRAYECTO ──────────────────────────────────────
+function renderTrayecto(){
+  const s=getLeadStats();
+  const reasons=Object.entries(s.lostReasons).sort((a,b)=>b[1]-a[1]);
+
+  document.getElementById('trayecto-content').innerHTML=`
+  <div class="slabel">¿Cómo han avanzado los leads?</div>
+  <div class="kgrid">
+    <div class="kcard"><div class="klabel">Leads totales</div><div class="kval">${s.total}</div><div class="ksub">2026</div></div>
+    <div class="kcard"><div class="klabel">Won</div><div class="kval g">${s.won}</div><div class="ksub">${pct(s.won,s.total)} de todos los leads</div></div>
+    <div class="kcard"><div class="klabel">Oportunidades activas</div><div class="kval a">${s.opp}</div><div class="ksub">Pipeline activo ahora</div></div>
+    <div class="kcard"><div class="klabel">Lost</div><div class="kval r">${s.lost}</div><div class="ksub">${pct(s.lost,s.total)} — mayoría reactivables</div></div>
+  </div>
+  <div class="twocol">
+    <div class="card">
+      <div class="ctitle">Funnel por calidad de lead</div>
+      <div class="legend">
+        <span><span class="ldot" style="background:${C.alto}"></span>Alto potencial (${s.alto})</span>
+        <span><span class="ldot" style="background:${C.pdef}"></span>Por definir (${s.pdef})</span>
+      </div>
+      <div class="chart-wrap"><canvas id="funnelCalChart" role="img" aria-label="Funnel de conversión por calidad"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Razones de pérdida</div>
+      <div class="chart-wrap"><canvas id="lostChart" role="img" aria-label="Dona de razones de pérdida"></canvas></div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:22px;">
+    <div class="ctitle">Leads con oportunidad activa</div>
+    <table class="tbl">
+      <thead><tr><th>Lead</th><th>Origen</th><th>Calidad</th><th>Q</th></tr></thead>
+      <tbody>
+        ${allLeads.filter(r=>r['Estado']==='Oportunidad').map(r=>`
+        <tr>
+          <td style="font-weight:500">${r['Nombre']}</td>
+          <td class="m">${r['Origen']||'—'}</td>
+          <td><span class="tag ${r['Calidad']==='Alto potencial'?'tag-alto':r['Calidad']==='Alianza estratégica'?'tag-ali':'tag-pdef'}">${r['Calidad']||'Por definir'}</span></td>
+          <td class="m">${r['Q']||'—'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+  <div class="ins"><p>${Math.round(s.lost>0?(Object.entries(s.lostReasons).find(([r])=>r==='No es el momento')?.[1]||0)/s.lost*100:0)}% de los lost salieron por "no es el momento" — no son rechazos definitivos. Representan un pipeline de reactivación real para H2.</p></div>`;
+
+  setTimeout(()=>{
+    buildBar('funnelCalChart',
+      ['Leads','Oportunidad','Won','Lost'],
+      [
+        {label:'Alto potencial',data:[s.alto,s.altoOpp,s.altoWon,s.altoLost],backgroundColor:C.alto,borderRadius:3,borderSkipped:false},
+        {label:'Por definir',data:[s.pdef,s.pdefOpp,s.pdefWon,s.pdefLost],backgroundColor:C.pdef,borderRadius:3,borderSkipped:false},
+      ],{stacked:true}
+    );
+    const rLabels=reasons.map(([r])=>r.length>25?r.substring(0,25)+'...':r);
+    buildDoughnut('lostChart',reasons.map(([,n])=>n),rLabels,C.s.slice(0,reasons.length));
+  },50);
+}
+
+// ── RENDER SERVICIOS ─────────────────────────────────────
+function renderServicios(){
+  const s=getSvcStats();
+  const svcEntries=Object.entries(s.bySvc).sort((a,b)=>b[1]-a[1]);
+
+  document.getElementById('servicios-content').innerHTML=`
+  <div class="slabel">¿Qué se está ejecutando?</div>
+  <div class="kgrid">
+    <div class="kcard"><div class="klabel">Proyectos activos</div><div class="kval">${s.activos.length}</div><div class="ksub">En ejecución ahora</div></div>
+    <div class="kcard"><div class="klabel">Entregados 2026</div><div class="kval g">${s.entregados.length}</div><div class="ksub">Completados este año</div></div>
+    <div class="kcard"><div class="klabel">En negociación</div><div class="kval a">${s.negociacion.length}</div><div class="ksub">Pendientes de confirmar</div></div>
+    <div class="kcard"><div class="klabel">Total año</div><div class="kval">${s.total}</div><div class="ksub">Proyectos 2026</div></div>
+  </div>
+  <div class="twocol">
+    <div class="card">
+      <div class="ctitle">Distribución por tipo de servicio</div>
+      <div class="chart-wrap"><canvas id="svcTypeChart" role="img" aria-label="Dona de servicios por tipo"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Proyectos activos ahora</div>
+      <table class="tbl">
+        <thead><tr><th>Proyecto</th><th>Servicio</th></tr></thead>
+        <tbody>
+          ${s.activos.map(r=>`
+          <tr>
+            <td style="font-weight:500">${r['Cliente']}</td>
+            <td class="m">${r['Servicio']||'—'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ctitle">Proyectos entregados 2026</div>
+    <table class="tbl">
+      <thead><tr><th>Proyecto</th><th>Servicio</th><th>Q</th><th>Notas</th></tr></thead>
+      <tbody>
+        ${s.entregados.map(r=>`
+        <tr>
+          <td style="font-weight:500">${r['Cliente']}</td>
+          <td class="m">${r['Servicio']||'—'}</td>
+          <td class="m">${r['Q']||'—'}</td>
+          <td class="m">${r['Notas']||'—'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+
+  setTimeout(()=>{
+    buildDoughnut('svcTypeChart',
+      svcEntries.map(([,n])=>n),
+      svcEntries.map(([s])=>s),
+      C.s.slice(0,svcEntries.length)
+    );
+  },50);
+}
+
+// ── RENDER RESUMEN ───────────────────────────────────────
+function renderResumen(){
+  const ls=getLeadStats();
+  const ss=getSvcStats();
+  const reactivables=allLeads.filter(r=>r['Estado']==='Lost'&&(r['Razón lost']==='No es el momento'||r['Razón lost']==='Sin respuesta / No responde')).length;
+  const topCanal=Object.entries(ls.byOrigen).sort((a,b)=>{
+    const pa=a[1].total>0?b[1].won/b[1].total:0;
+    const pb=b[1].total>0?b[1].won/b[1].total:0;
+    return pb-pa;
+  })[0]?.[0]||'—';
+
+  document.getElementById('resumen-content').innerHTML=`
+  <div class="slabel">Resumen ejecutivo — 2026</div>
+  <div class="kgrid">
+    <div class="kcard"><div class="klabel">Leads generados</div><div class="kval">${ls.total}</div><div class="ksub">Meta anual 228 · ${pct(ls.total,228)}</div></div>
+    <div class="kcard"><div class="klabel">Won</div><div class="kval g">${ls.won}</div><div class="ksub">Meta anual 56 · ${pct(ls.won,56)}</div></div>
+    <div class="kcard"><div class="klabel">Proyectos entregados</div><div class="kval g">${ss.entregados.length}</div><div class="ksub">2026</div></div>
+    <div class="kcard"><div class="klabel">Proyectos activos</div><div class="kval b">${ss.activos.length}</div><div class="ksub">En ejecución ahora</div></div>
+  </div>
+  <div class="threecol">
+    <div class="card big-stat">
+      <div class="big-num" style="color:#1a7a4a;">${pct(ls.won,ls.total)}</div>
+      <div class="big-lbl">de leads llegaron a Won</div>
+    </div>
+    <div class="card big-stat">
+      <div class="big-num" style="color:#b45309;">${reactivables}</div>
+      <div class="big-lbl">leads reactivables en H2<br>("no es el momento")</div>
+    </div>
+    <div class="card big-stat">
+      <div class="big-num" style="color:#2a78d6;">${ls.alto}</div>
+      <div class="big-lbl">leads de alto potencial<br>${pct(ls.alto,ls.total)} del total</div>
+    </div>
+  </div>
+  <div class="ins"><p>La calidad de los leads mejora — GRI y Relaciones Sociales generan los contactos con mayor tasa de conversión. El reto para H2 es volumen de nuevos leads y activar el pipeline de reactivación de ${reactivables} contactos. Hay ${ls.opp} oportunidades activas listas para cerrar.</p></div>`;
+}
+
+// ── NAV ─────────────────────────────────────────────────
+function showTab(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(el)el.classList.add('active');
+  if(!rendered.has(id)){
+    if(id==='origen')renderOrigen();
+    else if(id==='trayecto')renderTrayecto();
+    else if(id==='servicios')renderServicios();
+    else if(id==='resumen')renderResumen();
+    rendered.add(id);
+  }
+}
+
+// ── INIT ────────────────────────────────────────────────
+async function init(){
+  try{
+    const [leadsCSV,serviciosCSV]=await Promise.all([
+      fetch(URL_LEADS).then(r=>{if(!r.ok)throw new Error(`HTTP ${r.status}`);return r.text();}),
+      fetch(URL_SERV).then(r=>{if(!r.ok)throw new Error(`HTTP ${r.status}`);return r.text();})
+    ]);
+    allLeads=csvToObjects(leadsCSV);
+    allServicios=csvToObjects(serviciosCSV);
+
+    try{
+      const dr=await fetch(`https://www.googleapis.com/drive/v3/files/${SHEET_ID}?fields=modifiedTime`);
+      if(dr.ok){
+        const dd=await dr.json();
+        const d=new Date(dd.modifiedTime);
+        const months=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+        document.getElementById('last-updated').textContent=`${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}, ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+      } else throw new Error();
+    } catch{
+      const d=new Date();
+      const months=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+      document.getElementById('last-updated').textContent=`${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+    }
+
+    document.getElementById('main-loading').style.display='none';
+    document.getElementById('main-content').style.display='block';
+    renderOrigen();
+    rendered.add('origen');
+  } catch(err){
+    document.getElementById('main-loading').innerHTML=`<div class="error-box"><p><b>No se pudo cargar el Google Sheets.</b><br>Asegúrate de que el archivo esté publicado en la web.<br><br>Error: ${err.message}</p></div>`;
+  }
+}
+
+init();
+</script>
+</body>
+</html>
