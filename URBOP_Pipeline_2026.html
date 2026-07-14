@@ -85,6 +85,19 @@ body{font-family:'Sora',Arial,sans-serif;background:#f5f5f3;color:#111;font-size
 .sel-q{font-size:11px;font-family:'Sora',Arial,sans-serif;padding:4px 10px;border:0.5px solid #e5e5e5;border-radius:20px;background:#fff;color:#555;cursor:pointer;}
 .ctitle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
 .ctitle-row .ctitle{margin-bottom:0;}
+
+.canal-link{cursor:pointer;}
+.canal-link:hover{text-decoration:underline;}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(17,17,17,0.4);z-index:50;align-items:center;justify-content:center;padding:24px;}
+.modal-overlay.active{display:flex;}
+.modal-box{background:#fff;border-radius:10px;max-width:560px;width:100%;max-height:78vh;display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,0.25);}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:0.5px solid #e5e5e5;}
+.modal-title{font-size:13px;font-weight:600;color:#111;}
+.modal-sub{font-size:11px;color:#8a8b88;margin-top:2px;}
+.modal-close{cursor:pointer;font-size:20px;color:#8a8b88;line-height:1;border:none;background:none;padding:4px 6px;font-family:'Sora',Arial,sans-serif;}
+.modal-close:hover{color:#111;}
+.modal-body{padding:8px 20px 20px;overflow-y:auto;}
 </style>
 </head>
 <body>
@@ -138,6 +151,19 @@ body{font-family:'Sora',Arial,sans-serif;background:#f5f5f3;color:#111;font-size
     <div id="resumen-content"></div>
   </div>
 
+</div>
+
+<div class="modal-overlay" id="canalModal" onclick="if(event.target===this)closeCanalModal()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modalTitle">Canal</div>
+        <div class="modal-sub" id="modalSub"></div>
+      </div>
+      <button class="modal-close" onclick="closeCanalModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
 </div>
 
 <script>
@@ -199,6 +225,21 @@ function csvToObjects(text){
 function pct(n,d){return d===0?'0%':(n/d*100).toFixed(1)+'%';}
 function pctN(n,d){return d===0?0:Math.round(n/d*100);}
 function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+function escJS(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
+
+function calidadTag(c){
+  if(c==='Alto potencial')return'tag-alto';
+  if(c==='Potencial medio')return'tag-medio';
+  if(c==='Potencial bajo')return'tag-bajo';
+  if(c==='Alianza estratégica')return'tag-ali';
+  return'tag-pdef';
+}
+function estadoTag(e){
+  if(e==='Won')return'tag-won';
+  if(e==='Oportunidad')return'tag-opp';
+  if(e==='Lost')return'tag-lost';
+  return'tag-lead';
+}
 
 function buildBar(id,labels,datasets,opts={}){
   destroyChart(id);
@@ -246,6 +287,32 @@ function buildDoughnut(id,data,labels,colors){
     }
   });
 }
+
+// ── CANAL MODAL ──────────────────────────────────────────
+function showCanalModal(canal){
+  const leadsSrc=activeQ==='todos'?allLeads:allLeads.filter(r=>r['Q']===activeQ);
+  const rows=leadsSrc.filter(r=>(r['Origen']||'Sin registrar')===canal);
+  document.getElementById('modalTitle').textContent=canal;
+  document.getElementById('modalSub').textContent=`${rows.length} lead${rows.length===1?'':'s'}${activeQ!=='todos'?' · '+activeQ:''}`;
+  document.getElementById('modalBody').innerHTML=`
+    <table class="tbl">
+      <thead><tr><th>Lead</th><th>Calidad</th><th>Estado</th><th>Q</th></tr></thead>
+      <tbody>
+        ${rows.map(r=>`
+        <tr>
+          <td style="font-weight:500">${r['Nombre']}</td>
+          <td><span class="tag ${calidadTag(r['Calidad'])}">${r['Calidad']||'Por definir'}</span></td>
+          <td><span class="tag ${estadoTag(r['Estado'])}">${r['Estado']||'—'}</span></td>
+          <td class="m">${r['Q']||'—'}</td>
+        </tr>`).join('')||'<tr><td colspan="4" class="m">Sin leads.</td></tr>'}
+      </tbody>
+    </table>`;
+  document.getElementById('canalModal').classList.add('active');
+}
+function closeCanalModal(){
+  document.getElementById('canalModal').classList.remove('active');
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeCanalModal();});
 
 // ── STATS ───────────────────────────────────────────────
 function getLeadStats(){
@@ -343,7 +410,7 @@ function renderOrigen(){
       <tbody>
         ${origenes.map(([o,v])=>`
         <tr>
-          <td style="font-weight:500">${o}</td>
+          <td style="font-weight:500" class="canal-link" onclick="showCanalModal('${escJS(o)}')">${o}</td>
           <td class="r">${v.total}</td>
           <td class="r">${v.alto>0?`<span class="tag tag-alto">${v.alto}</span>`:'—'}</td>
           <td class="r" style="color:#1a7a4a;font-weight:500">${v.won||'—'}</td>
@@ -379,7 +446,7 @@ function renderOppTable(){
     <tr>
       <td style="font-weight:500">${r['Nombre']}</td>
       <td class="m">${r['Origen']||'—'}</td>
-      <td><span class="tag ${r['Calidad']==='Alto potencial'?'tag-alto':r['Calidad']==='Potencial medio'?'tag-medio':r['Calidad']==='Potencial bajo'?'tag-bajo':r['Calidad']==='Alianza estratégica'?'tag-ali':'tag-pdef'}">${r['Calidad']||'Por definir'}</span></td>
+      <td><span class="tag ${calidadTag(r['Calidad'])}">${r['Calidad']||'Por definir'}</span></td>
       <td class="m">${r['Q']||'—'}</td>
     </tr>`).join(''):`<tr><td colspan="4" class="m">Sin oportunidades activas${q!=='todos'?' en '+q:''}.</td></tr>`;
 }
